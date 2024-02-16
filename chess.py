@@ -170,6 +170,7 @@ verbose = False
 
 class Game:
     def __init__(self, FEN=''):
+        # Sets up a new board.
         self.board = INITIAL_BOARD
         self.to_move = WHITE
         self.ep_square = 0
@@ -187,11 +188,15 @@ class Game:
         self.move_history = []
     
     def get_move_list(self):
+        # Returns the list of moves.
         return ' '.join(self.move_history)
     
     def to_FEN(self):
+        # Converts the current position to FEN (Forsyth-Edwards Notation).
+        # This allows easy exporting of a position to a different editor which also supports FEN (most do).
         FEN_str = ''
         
+        # Iterate through the board, get each piece and format accordingly.
         for i in range(len(RANKS)):
             first = len(self.board) - 8*(i+1)
             empty_sqrs = 0
@@ -209,11 +214,13 @@ class Game:
             FEN_str += '/'
         FEN_str = FEN_str[:-1] + ' '
         
+        # Who's turn is it to move in the position?
         if self.to_move == WHITE:
             FEN_str += 'w '
         if self.to_move == BLACK:
             FEN_str += 'b '
             
+        # Who has castling rights?
         if self.castling_rights & CASTLE_KINGSIDE_WHITE:
             FEN_str += 'K'
         if self.castling_rights & CASTLE_QUEENSIDE_WHITE:
@@ -225,17 +232,21 @@ class Game:
         if self.castling_rights == 0:
             FEN_str += '-'
         FEN_str += ' '
-            
+        
+        # Set the current en passant square, if one exists.
         if self.ep_square == 0:
             FEN_str += '-'
         else:
             FEN_str += bb2str(self.ep_square)
         
+        # What move is it?
         FEN_str += ' {}'.format(self.halfmove_clock)
         FEN_str += ' {}'.format(self.fullmove_number)
+        
         return FEN_str
     
     def load_FEN(self, FEN_str):
+        # Read and import board positions given in FEN notation.
         FEN_list = FEN_str.split(' ')
         
         board_str = FEN_list[0]
@@ -243,6 +254,7 @@ class Game:
         rank_list.reverse()
         self.board = []
         
+        # Set pieces.
         for rank in rank_list:
             rank_pieces = []
             for p in rank:
@@ -253,12 +265,14 @@ class Game:
                     rank_pieces.append(str2piece(p))
             self.board.extend(rank_pieces)
         
+        # Set player turn.
         to_move_str = FEN_list[1].lower()
         if to_move_str == 'w':
             self.to_move = WHITE
         if to_move_str == 'b':
             self.to_move = BLACK
         
+        # Set castling rights.
         castling_rights_str = FEN_list[2]
         self.castling_rights = 0
         if castling_rights_str.find('K') >= 0:
@@ -270,12 +284,14 @@ class Game:
         if castling_rights_str.find('q') >= 0:
             self.castling_rights |= CASTLE_QUEENSIDE_BLACK 
         
+        # Set en passant square.
         ep_str = FEN_list[3]
         if ep_str == '-':
             self.ep_square = 0
         else:
             self.ep_square = str2bb(ep_str)
         
+        # Set move number.
         self.halfmove_clock = int(FEN_list[4])
         self.fullmove_number = int(FEN_list[5])
 
@@ -286,16 +302,19 @@ def get_piece(board, bitboard):
     return board[bb2index(bitboard)]
         
 def bb2index(bitboard):
+    # Converts bitboard to index.
     for i in range(64):
         if bitboard & (0b1 << i):
             return i
 
 def str2index(position_str):
+    # Converts string to index.
     fille = FILES.index(position_str[0].lower())
     rank = RANKS.index(position_str[1])
     return 8*rank + fille
 
 def bb2str(bitboard):
+    # Converts bitboard to a human-readable string format.
     for i in range(64):
         if bitboard & (0b1 << i):
             fille = i%8
@@ -303,9 +322,11 @@ def bb2str(bitboard):
             return '{}{}'.format(FILES[fille], RANKS[rank])
 
 def str2bb(position_str):
+    # Converts string to bitboard.
     return 0b1 << str2index(position_str)
 
 def move2str(move):
+    # Converts move to string.
     return bb2str(move[0]) + bb2str(move[1])
 
 def single_gen(bitboard):
@@ -325,6 +346,7 @@ def colored_piece_gen(board, piece_code, color):
             yield 0b1 << i
             
 def opposing_color(color):
+    # Given a color, return the opposite color.
     if color == WHITE:
         return BLACK
     if color == BLACK:
@@ -337,6 +359,7 @@ def str2piece(string):
     return PIECE_CODES[string]
     
 def print_board(board):
+    # Print a board in human-readable format.
     print('')
     for i in range(len(RANKS)):
         rank_str = str(8-i) + ' '
@@ -347,6 +370,7 @@ def print_board(board):
     print('  a b c d e f g h')
 
 def print_rotated_board(board):
+    # Print a board in human-readable format, but from Black's perspective.
     r_board = rotate_board(board)
     print('')
     for i in range(len(RANKS)):
@@ -358,6 +382,7 @@ def print_rotated_board(board):
     print('  h g f e d c b a')
     
 def print_bitboard(bitboard):
+    # Prints a bitboard in human-readable format, as opposed to a normal board.
     print('')
     for rank in range(len(RANKS)):
         rank_str = str(8-rank) + ' '
@@ -382,15 +407,19 @@ def msb(bitboard):
             return bit
 
 def get_colored_pieces(board, color):
+    # Returns all pieces of a certain color.
     return list2int([ (i != EMPTY and i&COLOR_MASK == color) for i in board ])
 
 def empty_squares(board):
+    # Returns empty squares on the board.
     return list2int([ i == EMPTY for i in board ])
 
 def occupied_squares(board):
+    # Returns all squares with a piece on them.
     return nnot(empty_squares(board))
 
 def list2int(lst):
+    # Converts lists to integers.
     rev_list = lst[:]
     rev_list.reverse()
     return int('0b' + ''.join(['1' if i else '0' for i in rev_list]), 2)
@@ -399,6 +428,7 @@ def nnot(bitboard):
     return ~bitboard & ALL_SQUARES
 
 def rotate_board(board):
+    # Flips the board so that it's from the player whose turn it is to move's perspective.
     rotated_board = deepcopy(board)
     rotated_board.reverse()
     return rotated_board
@@ -414,6 +444,8 @@ def flip_board_v(board):
              0,   1,   2,   3,   4,   5,   6,   7]
     
     return deepcopy([board[flip[i]] for i in range(64)])
+
+# ==== DIRECTIONS ==== #
 
 def east_one(bitboard):
     return (bitboard << 1) & nnot(FILE_A)
@@ -440,43 +472,50 @@ def SW_one(bitboard):
     return south_one(west_one(bitboard))
 
 def move_piece(board, move):
+    # Moves a piece and returns an updated board to reflect the move that was just made.
     new_board = deepcopy(board)
     new_board[bb2index(move[1])] = new_board[bb2index(move[0])] 
     new_board[bb2index(move[0])] = EMPTY
     return new_board
 
 def make_move(game, move):
+    # An extended implementation of move_piece which takes into account the rules of chess.
+    # Returns a new game state, as opposed to a new board.
     new_game = deepcopy(game)
     leaving_position = move[0]
     arriving_position = move[1]
     
-    # update_clocks
+    # Increment clocks. If the last move was from Black, it will mark the end of that full move.
     new_game.halfmove_clock += 1
     if new_game.to_move == BLACK:
         new_game.fullmove_number += 1
     
-    # reset clock if capture
+    # Reset half-move clock (which keeps track of successive non-capture moves) to zero when a capture is made.
     if get_piece(new_game.board, arriving_position) != EMPTY:
         new_game.halfmove_clock = 0
     
-    # for pawns: reset clock, removed captured ep, set new ep, promote
+    # The piece is a pawn.
     if get_piece(new_game.board, leaving_position)&PIECE_MASK == PAWN:
+        # Reset the clock.
         new_game.halfmove_clock = 0
         
+        # Clear the en passant square.
         if arriving_position == game.ep_square:
             new_game.board = remove_captured_ep(new_game)
-    
+
+        # If a pawn is pushed up two squares, set the en passant square behind it.
         if is_double_push(leaving_position, arriving_position):
             new_game.ep_square = new_ep_square(leaving_position)
-            
+        
+        # Handle promotions. Defaults to a Queen promotion for now.
         if arriving_position&(RANK_1|RANK_8):
             new_game.board[bb2index(leaving_position)] = new_game.to_move|QUEEN
     
-    # reset ep square if not updated
+    # Reset en passant square if it hasn't been updated.
     if new_game.ep_square == game.ep_square:
         new_game.ep_square = 0
         
-    # update castling rights for rook moves
+    # If a rook moves, and that player still has castling rights, revoke the corresponding castling rights.
     if leaving_position == str2bb('a1'):
         new_game.castling_rights = remove_castling_rights(new_game, CASTLE_QUEENSIDE_WHITE)
     if leaving_position == str2bb('h1'):
@@ -486,7 +525,7 @@ def make_move(game, move):
     if leaving_position == str2bb('h8'):
         new_game.castling_rights = remove_castling_rights(new_game, CASTLE_KINGSIDE_BLACK)
     
-    # castling
+    # If the king moves, revoke all castling rights.
     if get_piece(new_game.board, leaving_position) == WHITE|KING:
         new_game.castling_rights = remove_castling_rights(new_game, CASTLE_KINGSIDE_WHITE|CASTLE_QUEENSIDE_WHITE)
         if leaving_position == str2bb('e1'):
@@ -494,7 +533,8 @@ def make_move(game, move):
                 new_game.board = move_piece(new_game.board, [str2bb('h1'), str2bb('f1')])
             if arriving_position == str2bb('c1'):
                 new_game.board = move_piece(new_game.board, [str2bb('a1'), str2bb('d1')])
-        
+    
+    # ^ Ditto, but for the Black king.
     if get_piece(new_game.board, leaving_position) == BLACK|KING:
         new_game.castling_rights = remove_castling_rights(new_game, CASTLE_KINGSIDE_BLACK|CASTLE_QUEENSIDE_BLACK)
         if leaving_position == str2bb('e8'):
@@ -503,16 +543,17 @@ def make_move(game, move):
             if arriving_position == str2bb('c8'):
                 new_game.board = move_piece(new_game.board, [str2bb('a8'), str2bb('d8')])
     
-    # update positions and next to move
+    # Update the position and set the next player to move.
     new_game.board = move_piece(new_game.board, (leaving_position, arriving_position))
     new_game.to_move = opposing_color(new_game.to_move)
     
-    # update history
+    # Update move history accordingly.
     new_game.move_history.append(move2str(move))
     new_game.position_history.append(new_game.to_FEN())
     return new_game
 
 def unmake_move(game):
+    # Undoes a move from a given game state. Needed for a takeback feature to work.
     if len(game.position_history) < 2:
         return deepcopy(game)
     
@@ -522,10 +563,12 @@ def unmake_move(game):
     return new_game
 
 def get_rank(rank_num):
+    # Returns the rank mask of a given rank number.
     rank_num = int(rank_num)
     return RANK_MASKS[rank_num]
      
 def get_file(file_str):
+    # Returns the file mask of a given file.
     file_str = file_str.lower()
     file_num = FILES.index(file_str)
     return FILE_MASKS[file_num]
@@ -539,24 +582,31 @@ def get_filter(filter_str):
 # ========== PAWN ==========
 
 def get_all_pawns(board):
+    # Returns all pawns on the board.
     return list2int([ i&PIECE_MASK == PAWN for i in board ])
 
 def get_pawns(board, color):
+    # Returns all pawns of a certain color the board.
     return list2int([ i == color|PAWN for i in board ])
 
 def pawn_moves(moving_piece, game, color):
+    # Get all possible pawn moves.
     return pawn_pushes(moving_piece, game.board, color) | pawn_captures(moving_piece, game, color)
 
 def pawn_captures(moving_piece, game, color):
+    # Get all possible pawn captures.
     return pawn_simple_captures(moving_piece, game, color) | pawn_ep_captures(moving_piece, game, color)
 
 def pawn_pushes(moving_piece, board, color):
+    # Get all possible pawn pushes.
     return pawn_simple_pushes(moving_piece, board, color) | pawn_double_pushes(moving_piece, board, color)
 
 def pawn_simple_captures(attacking_piece, game, color):
+    # Get all possible pawn simple captures, excluding en passant.
     return pawn_attacks(attacking_piece, game.board, color) & get_colored_pieces(game.board, opposing_color(color))
 
 def pawn_ep_captures(attacking_piece, game, color):
+    # Get the en passant capture.
     if color == WHITE:
         ep_squares = game.ep_square & RANK_6
     if color == BLACK:
@@ -591,6 +641,7 @@ def pawn_west_attacks(attacking_piece, board, color):
         return SW_one(attacking_piece & get_colored_pieces(board, color))
 
 def pawn_double_attacks(attacking_piece, board, color):
+    # Get all pawn double attacks.
     return pawn_east_attacks(attacking_piece, board, color) & pawn_west_attacks(attacking_piece, board, color)
 
 def is_double_push(leaving_square, target_square):
@@ -672,9 +723,11 @@ def knight_distance(pos1, pos2):
 # ========== KING ==========
 
 def get_king(board, color):
+    # Get the king of a certain color.
     return list2int([ i == color|KING for i in board ])
 
 def king_moves(moving_piece, board, color):
+    # Get all king moves and ensure the king can't step on his own army.
     return king_attacks(moving_piece) & nnot(get_colored_pieces(board, color))
 
 def king_attacks(moving_piece):
@@ -682,6 +735,7 @@ def king_attacks(moving_piece):
     king_atks |= north_one(king_atks) | south_one(king_atks)
     return king_atks & nnot(moving_piece)
 
+# Check castling rights.
 def can_castle_kingside(game, color):
     if color == WHITE:
         return (game.castling_rights & CASTLE_KINGSIDE_WHITE) and \
@@ -921,12 +975,15 @@ def joker_moves(moving_piece, board, color):
 # ===========================
 
 def is_attacked(target, board, attacking_color):
+    # Check if a piece is attacked and count attacks.
     return count_attacks(target, board, attacking_color) > 0
 
 def is_check(board, color):
+    # Check if the king is attacked. Return a bool.
     return is_attacked(get_king(board, color), board, opposing_color(color))
 
 def get_attacks(moving_piece, board, color):
+    # Get all attacks of all pieces of a certain color.
     piece = board[bb2index(moving_piece)]
     
     if piece&PIECE_MASK == PAWN:
@@ -945,6 +1002,7 @@ def get_attacks(moving_piece, board, color):
         return joker_attacks(moving_piece, board, color)
 
 def get_moves(moving_piece, game, color):
+    # Get all moves of all pieces of a certain color.
     piece = game.board[bb2index(moving_piece)]
     
     if piece&PIECE_MASK == PAWN:
@@ -963,6 +1021,7 @@ def get_moves(moving_piece, game, color):
         return joker_moves(moving_piece, game.board, color)
 
 def count_attacks(target, board, attacking_color):
+    # Count attacks on a square.
     attack_count = 0
       
     for index in range(64):
@@ -976,6 +1035,7 @@ def count_attacks(target, board, attacking_color):
     return attack_count
 
 def material_sum(board, color):
+    # Sum the value of all material for a certain color.
     material = 0
     for piece in board:
         if piece&COLOR_MASK == color:
@@ -983,18 +1043,24 @@ def material_sum(board, color):
     return material
 
 def material_balance(board):
+    # Compare White's material against Black's. A negative will mean Black has the material advantage, 
+    #... whereas a positive will mean White has the material advantage.
     return material_sum(board, WHITE) - material_sum(board, BLACK)
 
 def mobility_balance(game):
+    # Compare the amount of legal moves that White has against Black's. This could be used to assessed the "closedness" of either player's position. 
     return count_legal_moves(game, WHITE) - count_legal_moves(game, BLACK)
 
 def evaluate_game(game):
+    # Basic evaluation function, takes into account material balance and any positional bonuses.
+    # The mobility balance has been ommitted for now.
     if game_ended(game):
         return evaluate_end_node(game)
     else:
         return material_balance(game.board) + positional_balance(game)# + 10*mobility_balance(game)
 
 def evaluate_end_node(game):
+    # Check if the game has ended. The game states can either be checkmate or a draw, through stalemate, insufficient material, or 75 move rule.
     if is_checkmate(game, game.to_move):
         return win_score(game.to_move)
     elif is_stalemate(game) or \
@@ -1003,9 +1069,12 @@ def evaluate_end_node(game):
         return 0
 
 def positional_balance(game):
+    # Compare the positional bonus of White versus Black. If the positional bonus is negative, that indicates Black is better positionally than White and vice versa.
     return positional_bonus(game, WHITE) - positional_bonus(game, BLACK) 
 
 def positional_bonus(game, color):
+    # Calculate the positional bonuses of a color based on their piece positions.
+    # Uses the piece-square table defined at the top of the program.
     bonus = 0
     
     if color == WHITE:
@@ -1046,30 +1115,36 @@ def positional_bonus(game, color):
     return bonus
 
 def is_endgame(board):
+    # Check whether the game is in the endgame. In this program it's defined as having 7 or less total pieces on the board, not pawns.
     return count_pieces(occupied_squares(board)) <= ENDGAME_PIECE_COUNT
 
 def is_open_file(bitboard, board):
+    # See if there is a pawn on the file. If not, return true.
     for f in FILES:
         rank_filter = get_file(f)
         if bitboard & rank_filter:
             return count_pieces(get_all_pawns(board)&rank_filter) == 0
 
 def is_semi_open_file(bitboard, board):
+    # See if there is exactly one pawn on the file. If so, return true.
     for f in FILES:
         rank_filter = get_file(f)
         if bitboard & rank_filter:
             return count_pieces(get_all_pawns(board)&rank_filter) == 1
 
 def count_pieces(bitboard):
+    # Counts all pieces on a bitboard.
     return bin(bitboard).count("1")
 
 def win_score(color):
+    # Values designated for the checkmate evaluation.
     if color == WHITE:
         return -10*PIECE_VALUES[KING]
     if color == BLACK:
         return 10*PIECE_VALUES[KING]
 
 def pseudo_legal_moves(game, color):
+    # Get all "pseudo-legal" moves. Pseudo-legal moves do not account for pinned pieces and such.
     for index in range(64):
         piece = game.board[index]
         
@@ -1085,11 +1160,14 @@ def pseudo_legal_moves(game, color):
         yield (get_king(game.board, color), west_one(west_one(get_king(game.board, color))))
 
 def legal_moves(game, color):
+    # Returns all legal moves for a given color.
     for move in pseudo_legal_moves(game, color):
         if is_legal_move(game, move):
             yield move
 
 def is_legal_move(game, move):
+    # Check if a move is legal by trying to make that move and then seeing if it causes a check to one's own king.
+    # Exclude it if it does.
     new_game = make_move(game, move)
     return not is_check(new_game.board, game.to_move)
     
@@ -1173,6 +1251,7 @@ def evaluated_move(game, color):
                 
     return [choice(best_moves), best_score]
 
+# Try to minimize enemy's score and maximize own's score.
 def minimax(game, color, depth=1):
     if game_ended(game):
         return [None, evaluate_game(game)]
@@ -1206,6 +1285,7 @@ def minimax(game, color, depth=1):
         
     return [choice(best_moves), best_score]
 
+# Alpha beta function, recursive search engine implementation.
 def alpha_beta(game, color, depth, alpha=-float('inf'), beta=float('inf')):
     if game_ended(game):
         return [None, evaluate_game(game)]
@@ -1274,6 +1354,7 @@ def alpha_beta(game, color, depth, alpha=-float('inf'), beta=float('inf')):
         else:
             return [None, beta]
 
+# Takes the input given by the player and parses it so that the program can read it.
 def parse_move_code(game, move_code):
     move_code = move_code.replace(" ","")
     move_code = move_code.replace("x","")
@@ -1350,7 +1431,8 @@ def get_AI_move(game, depth=2):
 
 def print_outcome(game):
     print(get_outcome(game))
-    
+
+# Checks the outcome of the game and returns the appropriate string to display to the player.
 def get_outcome(game):
     if is_stalemate(game):
         return 'Draw by stalemate'
@@ -1365,6 +1447,8 @@ def get_outcome(game):
 
 def play_as_white(game=Game()):
     print('Playing as white!')
+
+    # Game loop. Some repeated code here from the play_as_black function.
     while True:
         print_board(game.board)
         if game_ended(game):
@@ -1396,6 +1480,7 @@ def play_as_black(game=Game()):
         game = make_move(game, get_player_move(game))
     print_outcome(game)
 
+# Make the AI play against each other.
 def watch_AI_game(game=Game(), sleep_seconds=0):
     print('Watching AI-vs-AI game!')
     while True:
