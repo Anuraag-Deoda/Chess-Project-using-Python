@@ -1,0 +1,2 @@
+## Python Chess: About The Project
+This is a lightweight chess game written entirely in Python. It features a simple GUI, an opening book, and a simple engine you can play against, which uses alpha-beta pruning and piece-square tables to maximize its material and positional advantage. There is support for the Joker chess piece as well.
